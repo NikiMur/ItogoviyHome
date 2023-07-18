@@ -1,19 +1,16 @@
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.PriorityQueue;
 import java.util.Random;
 
 class Toy {
     private String id;
     private String name;
-    private int quantity;
-    private double weight;
+    private int weight;
 
-    public Toy(String id, String name, int quantity, double weight) {
+    public Toy(String id, String name, int weight) {
         this.id = id;
         this.name = name;
-        this.quantity = quantity;
         this.weight = weight;
     }
 
@@ -25,101 +22,58 @@ class Toy {
         return name;
     }
 
-    public int getQuantity() {
-        return quantity;
-    }
-
-    public double getWeight() {
+    public int getWeight() {
         return weight;
-    }
-
-    public void setWeight(double weight) {
-        this.weight = weight;
-    }
-
-    public void reduceQuantity() {
-        quantity--;
     }
 }
 
 public class Zadanie1 {
-    private List<Toy> toyList;
-    private List<Toy> prizeList;
+    private PriorityQueue<Toy> toys;
 
     public Zadanie1() {
-        toyList = new ArrayList<>();
-        prizeList = new ArrayList<>();
+        toys = new PriorityQueue<>((t1, t2) -> t2.getWeight() - t1.getWeight());
     }
 
     public void addToy(Toy toy) {
-        toyList.add(toy);
+        toys.add(toy);
     }
 
-    public void updateWeight(String toyId, double weight) {
-        for (Toy toy : toyList) {
-            if (toy.getId().equals(toyId)) {
-                toy.setWeight(weight);
-                break;
-            }
-        }
-    }
-
-    public void runLottery() {
+    public Toy getRandomToy() {
         Random random = new Random();
-        double totalWeight = 0;
+        int totalWeight = toys.stream().mapToInt(Toy::getWeight).sum();
+        int randomNumber = random.nextInt(totalWeight) + 1;
 
-        // Вычисляем общий вес всех игрушек
-        for (Toy toy : toyList) {
-            totalWeight += toy.getWeight();
-        }
-
-        while (!toyList.isEmpty()) {
-            double randomNumber = random.nextDouble() * totalWeight;
-            double weightSum = 0;
-
-            for (Toy toy : toyList) {
-                weightSum += toy.getWeight();
-                if (randomNumber <= weightSum) {
-                    prizeList.add(toy);
-                    toy.reduceQuantity();
-                    totalWeight -= toy.getWeight();
-                    break;
-                }
+        int currentWeight = 0;
+        for (Toy toy : toys) {
+            currentWeight += toy.getWeight();
+            if (randomNumber <= currentWeight) {
+                return toy;
             }
-
-            toyList.remove(prizeList.get(prizeList.size() - 1));
         }
 
-        savePrizeList();
+        return null;
     }
 
-    public void savePrizeList() {
-        try (FileWriter fileWriter = new FileWriter("prize_list.txt")) {
-            for (Toy toy : prizeList) {
-                fileWriter.write(toy.getId() + " - " + toy.getName() + "\n");
+    public void simulateLottery(int iterations, String filename) {
+        try (FileWriter writer = new FileWriter(filename)) {
+            for (int i = 0; i < iterations; i++) {
+                Toy toy = getRandomToy();
+                String result = toy != null ? toy.getId() : "No toy available";
+                writer.write(result + "\n");
             }
-            System.out.println("Список призовых игрушек сохранен в файле 'prize_list.txt'");
         } catch (IOException e) {
+            System.out.println("An error occurred while writing to the file.");
             e.printStackTrace();
         }
     }
 
     public static void main(String[] args) {
-        Zadanie1 lottery = new Zadanie1();
+        Zadanie1 zadanie1 = new Zadanie1();
 
-        // Добавление игрушек
-        Toy toy1 = new Toy("1", "Мяч", 5, 30);
-        Toy toy2 = new Toy("2", "Кукла", 3, 20);
-        Toy toy3 = new Toy("3", "Машинка", 4, 50);
+        zadanie1.addToy(new Toy("1", "конструктор", 2));
+        zadanie1.addToy(new Toy("2", "робот", 2));
+        zadanie1.addToy(new Toy("3", "кукла", 6));
 
-        lottery.addToy(toy1);
-        lottery.addToy(toy2);
-        lottery.addToy(toy3);
-
-        // Обновление веса игрушки
-        lottery.updateWeight("2", 25);
-
-        // Запуск розыгрыша и сохранение списка призовых игрушек
-        lottery.runLottery();
+        zadanie1.simulateLottery(10, "lottery_results.txt");
     }
 }
